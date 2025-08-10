@@ -14,7 +14,7 @@ class OccupancyGridPublisher : public rclcpp::Node
 public:
 	OccupancyGridPublisher() : Node("manual_map_publisher") 
 	{
-		this->declare_parameter<std::string>("map_file", "map.png");
+		this->declare_parameter<std::string>("map_file", "test_map.png");
 		this->declare_parameter<double>("resolution", 0.05);
 		this->declare_parameter<double>("origin_x", 0.0);
 		this->declare_parameter<double>("origin_y", 0.0);
