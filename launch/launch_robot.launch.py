@@ -25,6 +25,10 @@ def generate_launch_description():
 
     package_name='kdb_diffbot' #<--- CHANGE ME
 
+    robot_description = Command(['ros2 param get --hide-type /robot_state_publisher robot_description'])
+    controller_params_file = os.path.join(get_package_share_directory(package_name),'config','my_controllers.yaml')
+    map_file_path = os.path.join(get_package_share_directory(package_name),'maps','map.png')
+
     rsp = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([os.path.join(
                     get_package_share_directory(package_name),'launch','rsp.launch.py'
@@ -44,9 +48,6 @@ def generate_launch_description():
     #         parameters=[twist_mux_params, {'use_sim_time': True}],
     #         remappings=[('/cmd_vel_out','/diff_cont/cmd_vel_unstamped')]
     #     )
-
-    robot_description = Command(['ros2 param get --hide-type /robot_state_publisher robot_description'])
-    controller_params_file = os.path.join(get_package_share_directory(package_name),'config','my_controllers.yaml')
 
     controller_manager = Node(
         package="controller_manager",
@@ -88,6 +89,18 @@ def generate_launch_description():
         )
     )
 
+    manual_map_publisher = Node(
+        package='kdb_diffbot',
+        executable='manual_map_publisher',
+        name='manual_map_publisher',
+        parameters=[{
+            'map_file': map_file_path,
+            'resolution': 0.02,
+            'origin_x': 0.0,
+            'origin_y': 0.0
+        }],
+        output='screen'
+    )
 
     # Code for delaying a node (I haven't tested how effective it is)
     # 
@@ -114,5 +127,6 @@ def generate_launch_description():
         # twist_mux,
         delayed_controller_manager,
         delayed_diff_drive_spawner, # bili su obicni samo bez delayed
-        delayed_joint_broad_spawner
+        delayed_joint_broad_spawner,
+        manual_map_publisher
     ])

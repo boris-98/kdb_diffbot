@@ -20,6 +20,19 @@ find_package(ament_cmake REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(OpenCV REQUIRED)
+
+add_executable(manual_map_publisher src/manual_map_publisher.cpp)
+ament_target_dependencies(manual_map_publisher 
+  rclcpp 
+  nav_msgs
+  OpenCV
+)
+install(TARGETS manual_map_publisher
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -33,7 +46,7 @@ if(BUILD_TESTING)
 endif()
 
 install(
-  DIRECTORY config description launch worlds
+  DIRECTORY config description launch worlds maps
   DESTINATION share/${PROJECT_NAME}
 )
 
