@@ -23,14 +23,29 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 add_executable(manual_map_publisher src/manual_map_publisher.cpp)
+add_executable(map_localization_node src/map_localization_node.cpp)
 ament_target_dependencies(manual_map_publisher 
   rclcpp 
   nav_msgs
   OpenCV
 )
-install(TARGETS manual_map_publisher
+ament_target_dependencies(map_localization_node 
+  rclcpp 
+  geometry_msgs
+  tf2
+  tf2_ros
+)
+install(TARGETS 
+  manual_map_publisher
+  DESTINATION lib/${PROJECT_NAME}
+)
+install(TARGETS
+  map_localization_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

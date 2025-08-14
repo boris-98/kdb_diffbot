@@ -58,8 +58,8 @@ private:
 	{
 		auto occupancy_grid_msg = nav_msgs::msg::OccupancyGrid();
 
-		occupancy_grid_msg.header.stamp = rclcpp::Clock().now();
-		occupancy_grid_msg.header.frame_id = "base_link";
+		occupancy_grid_msg.header.stamp = this->now();
+		occupancy_grid_msg.header.frame_id = "map";
 		occupancy_grid_msg.info.resolution = resolution_;
 		occupancy_grid_msg.info.width = width_;
 		occupancy_grid_msg.info.height = height_;

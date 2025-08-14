@@ -21,6 +21,7 @@ def generate_launch_description():
     # !!! MAKE SURE YOU SET THE PACKAGE NAME CORRECTLY !!!
 
     package_name='kdb_diffbot' #<--- CHANGE ME
+    map_file_path = os.path.join(get_package_share_directory(package_name),'maps','test_map.png')
 
     rsp = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([os.path.join(
@@ -86,6 +87,29 @@ def generate_launch_description():
         )
     )
 
+    map_localization_node = Node(
+        package="kdb_diffbot",
+        executable="map_localization_node",
+        name="map_localization_node",
+        parameters=[{"use_sim_time": True}],
+        output="screen"
+    )
+
+    manual_map_publisher = Node(
+        package='kdb_diffbot',
+        executable='manual_map_publisher',
+        name='manual_map_publisher',
+        parameters=[{
+            'map_file': map_file_path,
+            'resolution': 0.02,
+            'origin_x': 0.0,
+            'origin_y': 0.0,
+            'use_sim_time': True
+        }],
+        output='screen'
+    )
+
+
 
     # Code for delaying a node (I haven't tested how effective it is)
     # 
@@ -113,5 +137,7 @@ def generate_launch_description():
         gazebo,
         spawn_entity,
         delayed_diff_drive_spawner, # bili su obicni samo bez delayed
-        delayed_joint_broad_spawner
+        delayed_joint_broad_spawner,
+        manual_map_publisher,
+        map_localization_node
     ])
