@@ -89,6 +89,14 @@ def generate_launch_description():
         )
     )
 
+    map_localization_node = Node(
+        package="kdb_diffbot",
+        executable="map_localization_node",
+        name="map_localization_node",
+        parameters=[{"use_sim_time": False}],
+        output="screen"
+    )
+
     manual_map_publisher = Node(
         package='kdb_diffbot',
         executable='manual_map_publisher',
@@ -101,6 +109,7 @@ def generate_launch_description():
         }],
         output='screen'
     )
+    
 
     # Code for delaying a node (I haven't tested how effective it is)
     # 
@@ -128,5 +137,6 @@ def generate_launch_description():
         delayed_controller_manager,
         delayed_diff_drive_spawner, # bili su obicni samo bez delayed
         delayed_joint_broad_spawner,
-        manual_map_publisher
+        manual_map_publisher,
+        map_localization_node
     ])
