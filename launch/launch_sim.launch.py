@@ -86,6 +86,30 @@ def generate_launch_description():
         )
     )
 
+    # Get the path to the package share directory
+    apriltag_ros_share_dir = get_package_share_directory('apriltag_ros')
+
+    # Get the path to the tags_36h11.yaml file
+    tags_36h11_yaml_file = os.path.join(apriltag_ros_share_dir, 'cfg', 'tags_36h11.yaml')
+    print("AprilTag parameter file path:", tags_36h11_yaml_file)
+
+    apriltag_ros_spawner = Node(
+        package='apriltag_ros',
+        executable='apriltag_node',
+        name='apriltag_node',
+        output='screen',
+        remappings=[
+            ('image_rect', '/camera/image_raw'),
+            ('camera_info', '/camera/camera_info')
+        ],
+        parameters=[tags_36h11_yaml_file]
+    )
+    delayed_apriltag_ros_spawner = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=spawn_entity,
+            on_exit=[apriltag_ros_spawner],
+        )
+    )
 
     # Code for delaying a node (I haven't tested how effective it is)
     # 
@@ -113,5 +137,6 @@ def generate_launch_description():
         gazebo,
         spawn_entity,
         delayed_diff_drive_spawner, # bili su obicni samo bez delayed
-        delayed_joint_broad_spawner
+        delayed_joint_broad_spawner,
+        delayed_apriltag_ros_spawner
     ])
