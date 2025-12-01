@@ -94,9 +94,10 @@
       <link name='main'>
         <pose>0 0 0 0 -0 0</pose>
         <visual name='main_Visual'>
+          <pose>0 0 0 0 -0 0</pose>
           <geometry>
             <box>
-              <size>0.01 1 1</size>
+              <size>1 1 0.01</size>
             </box>
           </geometry>
           <material>
@@ -112,18 +113,18 @@
         <kinematic>0</kinematic>
       </link>
       <static>1</static>
-      <pose>3.03622 0.045461 0 0 -0 0</pose>
+      <pose>0.052503 0.024316 0 0 -0 0</pose>
     </model>
     <state world_name='default'>
-      <sim_time>361 287000000</sim_time>
-      <real_time>61 266207993</real_time>
-      <wall_time>1763939546 33001977</wall_time>
-      <iterations>60173</iterations>
+      <sim_time>362 289000000</sim_time>
+      <real_time>377 814485877</real_time>
+      <wall_time>1764543512 132669336</wall_time>
+      <iterations>362289</iterations>
       <model name='Apriltag36_11_00000'>
-        <pose>3.0 0.0 0.5 0 -0 0</pose>
+        <pose>3 0 0.5 0 -1.57079 0</pose>
         <scale>1 1 1</scale>
         <link name='main'>
-          <pose>3.0 0.0 0.5 0 -0 0</pose>
+          <pose>3 0 0.5 0 -1.57079 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -145,7 +146,7 @@
     </state>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose>-5.06465 -3.38077 2.61456 0 0.319643 0.416195</pose>
+        <pose>-4.92588 -3.13611 3.35521 -0 0.379643 0.376192</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>

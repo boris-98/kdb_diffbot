@@ -12,6 +12,17 @@
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
+  <!-- for ekf localization python node -->
+  <depend>rclpy</depend>
+  <depend>tf2_ros</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <!-- optional, for tf2_geometry_msgs or message_filters -->
+  <depend>tf2_geometry_msgs</depend>
+  <depend>message_filters</depend>
+
   <export>
     <build_type>ament_cmake</build_type>
   </export>

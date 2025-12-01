@@ -37,4 +37,11 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
+### --- Install python nodes (scripts) -----------------------
+# install Python executable scripts into lib/<project>
+install(PROGRAMS
+  py_nodes/ekf_localization_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()

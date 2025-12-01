@@ -111,6 +111,27 @@ def generate_launch_description():
         )
     )
 
+    ekf_node = Node(
+        package='kdb_diffbot',
+        executable='ekf_localization_node.py',  # or 'ekf_localization' if you removed .py
+        name='ekf_localization',
+        output='screen',
+        parameters=[{
+            'tag_map_yaml': os.path.join(get_package_share_directory(package_name), 'config', 'tag_map.yaml'),
+            'map_frame': 'map',
+            'odom_frame': 'odom',
+            'base_frame': 'base_link',
+            'use_sim_time': True
+        }]
+    )
+
+    delayed_ekf_node_spawner = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=spawn_entity,
+            on_exit=[ekf_node],
+        )
+    )
+
     # Code for delaying a node (I haven't tested how effective it is)
     # 
     # First add the below lines to imports
@@ -138,5 +159,6 @@ def generate_launch_description():
         spawn_entity,
         delayed_diff_drive_spawner, # bili su obicni samo bez delayed
         delayed_joint_broad_spawner,
-        delayed_apriltag_ros_spawner
+        delayed_apriltag_ros_spawner,
+        delayed_ekf_node_spawner
     ])
