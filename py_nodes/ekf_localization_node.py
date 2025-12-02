@@ -88,10 +88,10 @@ class EKFLocalizationNode(Node):
         self.declare_parameter('use_tf_for_tags', True)
         self.declare_parameter('default_meas_var_xy', 0.01) # m^2
         self.declare_parameter('default_meas_var_theta', 0.05) # rad^2
-        self.declare_parameter('alpha1', 0.1)  # motion noise related to forward velocity
-        self.declare_parameter('alpha2', 0.1)  # motion noise related to angular velocity
-        self.declare_parameter('alpha3', 0.1)  # motion noise related to forward velocity
-        self.declare_parameter('alpha4', 0.1)  # motion noise related to angular velocity
+        self.declare_parameter('alpha1', 0.01)  # motion noise related to forward velocity
+        self.declare_parameter('alpha2', 0.01)  # motion noise related to angular velocity
+        self.declare_parameter('alpha3', 0.01)  # motion noise related to forward velocity
+        self.declare_parameter('alpha4', 0.01)  # motion noise related to angular velocity
 
         # Frames
         self.map_frame = self.get_parameter('map_frame').value
@@ -243,26 +243,26 @@ class EKFLocalizationNode(Node):
                 self.get_logger().info(f'Correction from tag {tag_id}: z = [{meas_x:.2f}, {meas_y:.2f}, {meas_theta:.2f}]', throttle_duration_sec=1.0)
                 self.get_logger().info(f'Prior mu = [{self.mu[0]:.2f}, {self.mu[1]:.2f}, {self.mu[2]:.2f}]', throttle_duration_sec=1.0)
 
-                # # Measurement prediction h(mu)
-                # h_mu = self.mu.copy()  # since mu is map->base and we want map->cam, but cam is at base in this simplified model
+                # Measurement prediction h(mu)
+                h_mu = self.mu.copy()  
 
-                # # Measurement residual
-                # y_k = z - h_mu
-                # y_k[2] = wrap_angle(y_k[2])
+                # Measurement residual
+                y_k = z - h_mu
+                y_k[2] = wrap_angle(y_k[2])
 
-                # # Measurement covariance R
-                # R = np.diag([self.default_var_xy, self.default_var_xy, self.default_var_theta])
+                # Measurement covariance R
+                R = np.diag([self.default_var_xy, self.default_var_xy, self.default_var_theta])
 
-                # # Kalman Gain
-                # S = self.Sigma + R
-                # K = self.Sigma @ np.linalg.inv(S)
+                # Kalman Gain
+                S = self.Sigma + R
+                K = self.Sigma @ np.linalg.inv(S)
 
-                # # Update state
-                # self.mu = self.mu + K @ y_k
-                # self.mu[2] = wrap_angle(self.mu[2])
+                # Update state
+                self.mu = self.mu + K @ y_k
+                self.mu[2] = wrap_angle(self.mu[2])
 
-                # # Update covariance
-                # self.Sigma = (np.eye(3) - K) @ self.Sigma
+                # Update covariance
+                self.Sigma = (np.eye(3) - K) @ self.Sigma
 
             except Exception:
                 # TF lookup failed for this tag, skip
@@ -271,9 +271,8 @@ class EKFLocalizationNode(Node):
 
         # 3. Publish map->odom transform
         try:
-            t = self.tf_buffer.lookup_transform(self.base_frame, self.odom_frame, rclpy.time.Time())
-            T_odom_base = tf_to_matrix((t.transform.translation.x, t.transform.translation.y, t.transform.translation.z),
-                                      (t.transform.rotation.x, t.transform.rotation.y, t.transform.rotation.z, t.transform.rotation.w))
+            t = self.tf_buffer.lookup_transform(self.odom_frame, self.base_frame, rclpy.time.Time())
+            T_odom_base = tfmsg_to_matrix(t)
         except Exception:
             # fallback identity (nije idealno, proveri kasnije)
             T_odom_base = np.eye(4)
@@ -287,8 +286,8 @@ class EKFLocalizationNode(Node):
             [sin(self.mu[2]),  cos(self.mu[2]), 0],
             [0, 0, 1]
         ])
-        # T_map_odom = T_map_base @ invert_homogen(T_odom_base)
-        self.send_map_odom_tf(T_map_base)
+        T_map_odom = T_map_base @ invert_homogen(T_odom_base)
+        self.send_map_odom_tf(T_map_odom)
 
 
     def predict_from_odom(self, odom_msg: Odometry):
