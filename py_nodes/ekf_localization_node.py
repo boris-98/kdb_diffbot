@@ -219,29 +219,29 @@ class EKFLocalizationNode(Node):
         for tag_id in tag_ids_from_map:
             tag_frame = tag_id
             try:
-                t = self.tf_buffer.lookup_transform(self.odom_frame, tag_frame, rclpy.time.Time())
-                T_odom_tag = tfmsg_to_matrix(t)
+                t = self.tf_buffer.lookup_transform(self.base_frame, tag_frame, rclpy.time.Time())
+                T_base_tag = tfmsg_to_matrix(t)
                 
                 # Get T_map_tag from tag_map
                 T_map_tag = self.tag_map[tag_id]
                 
                 # Final estimate
-                T_map_odom = T_map_tag @ invert_homogen(T_odom_tag)
+                T_map_base = T_map_tag @ invert_homogen(T_base_tag)
                 
                 # Extract measurement z = [x, y, theta] from T_map_cam
-                meas_x = T_map_odom[0, 3]
-                meas_y = T_map_odom[1, 3]
-                meas_theta = atan2(T_map_odom[1, 0], T_map_odom[0, 0])
+                meas_x = T_map_base[0, 3]
+                meas_y = T_map_base[1, 3]
+                meas_theta = atan2(T_map_base[1, 0], T_map_base[0, 0])
                 z = np.array([meas_x, meas_y, meas_theta])
                 
                 # logs
-                # self.get_logger().info(f'Found TF {self.odom_frame} -> {tag_frame}')
-                # self.get_logger().info(f'T_odom_tag:\n{T_odom_tag}')
-                # self.get_logger().info(f'Inverted T_tag_odom:\n{invert_homogen(T_odom_tag)}')
-                # self.get_logger().info(f'map->tag {tag_id}:\n{T_map_tag}')
-                # self.get_logger().info(f'Estimated T_map_odom from tag {tag_id}:\n{T_map_odom}')
-                # self.get_logger().info(f'Correction from tag {tag_id}: z = [{meas_x:.2f}, {meas_y:.2f}, {meas_theta:.2f}]')
-                # self.get_logger().info(f'Prior mu = [{self.mu[0]:.2f}, {self.mu[1]:.2f}, {self.mu[2]:.2f}]')
+                self.get_logger().info(f'Found TF {self.odom_frame} -> {tag_frame}', throttle_duration_sec=1.0)
+                self.get_logger().info(f'T_base_tag:\n{T_base_tag}', throttle_duration_sec=1.0)
+                self.get_logger().info(f'Inverted T_tag_odom:\n{invert_homogen(T_base_tag)}', throttle_duration_sec=1.0)
+                self.get_logger().info(f'map->tag {tag_id}:\n{T_map_tag}', throttle_duration_sec=1.0)
+                self.get_logger().info(f'Estimated T_map_odom from tag {tag_id}:\n{T_map_base}', throttle_duration_sec=1.0)
+                self.get_logger().info(f'Correction from tag {tag_id}: z = [{meas_x:.2f}, {meas_y:.2f}, {meas_theta:.2f}]', throttle_duration_sec=1.0)
+                self.get_logger().info(f'Prior mu = [{self.mu[0]:.2f}, {self.mu[1]:.2f}, {self.mu[2]:.2f}]', throttle_duration_sec=1.0)
 
                 # # Measurement prediction h(mu)
                 # h_mu = self.mu.copy()  # since mu is map->base and we want map->cam, but cam is at base in this simplified model
@@ -287,8 +287,8 @@ class EKFLocalizationNode(Node):
             [sin(self.mu[2]),  cos(self.mu[2]), 0],
             [0, 0, 1]
         ])
-        T_map_odom = T_map_base @ invert_homogen(T_odom_base)
-        self.send_map_odom_tf(T_map_odom)
+        # T_map_odom = T_map_base @ invert_homogen(T_odom_base)
+        self.send_map_odom_tf(T_map_base)
 
 
     def predict_from_odom(self, odom_msg: Odometry):
