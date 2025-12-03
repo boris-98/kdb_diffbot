@@ -117,7 +117,7 @@ def generate_launch_description():
         name='ekf_localization',
         output='screen',
         parameters=[{
-            'tag_map_yaml': os.path.join(get_package_share_directory(package_name), 'config', 'tag_map.yaml'),
+            'tag_map_yaml': os.path.join(get_package_share_directory(package_name), 'config', 'maze_tag_map.yaml'),#'tag_map.yaml'),
             'map_frame': 'map',
             'odom_frame': 'odom',
             'base_frame': 'base_link',

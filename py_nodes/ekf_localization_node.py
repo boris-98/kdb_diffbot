@@ -4,6 +4,8 @@ from rclpy.node import Node
 from rclpy.duration import Duration
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped
+from apriltag_msgs.msg import AprilTagDetectionArray
+from nav_msgs.msg import Odometry
 import tf2_ros
 import numpy as np
 from math import sin, cos, atan2, sqrt, pi
@@ -116,6 +118,9 @@ class EKFLocalizationNode(Node):
         # Measurement default variances
         self.default_var_xy = float(self.get_parameter('default_meas_var_xy').value)
         self.default_var_theta = float(self.get_parameter('default_meas_var_theta').value)
+
+        # Detected tags storage
+        self.detected_tag_ids = []
         
         # Load global poses for tags from YAML file
         tag_map_yaml = self.get_parameter('tag_map_yaml').value
@@ -148,6 +153,8 @@ class EKFLocalizationNode(Node):
 
         # Subscribers and Publishers
         self.create_subscription(Odometry, '/diff_cont/odom', self.odom_callback, 50)
+        self.create_subscription(AprilTagDetectionArray, '/detections', self.detections_callback, 10)
+        self.ekf_pub = self.create_publisher(Odometry, '/ekf/odom', 10)
 
         # Main timer
         self.timer = self.create_timer(0.05, self.timer_callback) # 20 Hz
@@ -201,9 +208,51 @@ class EKFLocalizationNode(Node):
 
         self.tf_broadcaster.sendTransform(t)
 
+    def publish_ekf_odom(self):
+        msg = Odometry()
+
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = self.map_frame     # "map"
+        msg.child_frame_id = self.base_frame     # "base_link"
+
+        # Pose from mu
+        msg.pose.pose.position.x = float(self.mu[0])
+        msg.pose.pose.position.y = float(self.mu[1])
+        msg.pose.pose.position.z = 0.0
+
+        # Yaw -> quaternion
+        qz = sin(self.mu[2] / 2.0)
+        qw = cos(self.mu[2] / 2.0)
+
+        msg.pose.pose.orientation.x = 0.0
+        msg.pose.pose.orientation.y = 0.0
+        msg.pose.pose.orientation.z = float(qz)
+        msg.pose.pose.orientation.w = float(qw)
+
+        # Flatten covariance into 6x6 matrix
+        cov = np.zeros((6, 6))
+
+        cov[0, 0] = self.Sigma[0, 0]  # x-x
+        cov[0, 1] = self.Sigma[0, 1]  # x-y
+        cov[1, 0] = self.Sigma[1, 0]  # y-x
+        cov[1, 1] = self.Sigma[1, 1]  # y-y
+
+        cov[5, 5] = self.Sigma[2, 2]  # yaw-yaw
+
+        msg.pose.covariance = cov.flatten().tolist()
+
+        self.ekf_pub.publish(msg)
+
     def odom_callback(self, msg: Odometry):
         # Store the last odometry message (velocities se integrale)
         self.last_odom_msg = msg
+
+    def detections_callback(self, msg: AprilTagDetectionArray):
+        if len(msg.detections) == 0:
+            self.detected_tag_ids = []
+            return
+
+        self.detected_tag_ids = [f"tag_{det.id}" for det in msg.detections]
 
     # Main loop
     def timer_callback(self):
@@ -215,58 +264,70 @@ class EKFLocalizationNode(Node):
 
 
         # 2. Correction
-        tag_ids_from_map = list(self.tag_map.keys())
-        for tag_id in tag_ids_from_map:
-            tag_frame = tag_id
-            try:
-                t = self.tf_buffer.lookup_transform(self.base_frame, tag_frame, rclpy.time.Time())
-                T_base_tag = tfmsg_to_matrix(t)
-                
-                # Get T_map_tag from tag_map
-                T_map_tag = self.tag_map[tag_id]
-                
-                # Final estimate
-                T_map_base = T_map_tag @ invert_homogen(T_base_tag)
-                
-                # Extract measurement z = [x, y, theta] from T_map_cam
-                meas_x = T_map_base[0, 3]
-                meas_y = T_map_base[1, 3]
-                meas_theta = atan2(T_map_base[1, 0], T_map_base[0, 0])
-                z = np.array([meas_x, meas_y, meas_theta])
-                
-                # logs
-                self.get_logger().info(f'Found TF {self.odom_frame} -> {tag_frame}', throttle_duration_sec=1.0)
-                self.get_logger().info(f'T_base_tag:\n{T_base_tag}', throttle_duration_sec=1.0)
-                self.get_logger().info(f'Inverted T_tag_odom:\n{invert_homogen(T_base_tag)}', throttle_duration_sec=1.0)
-                self.get_logger().info(f'map->tag {tag_id}:\n{T_map_tag}', throttle_duration_sec=1.0)
-                self.get_logger().info(f'Estimated T_map_odom from tag {tag_id}:\n{T_map_base}', throttle_duration_sec=1.0)
-                self.get_logger().info(f'Correction from tag {tag_id}: z = [{meas_x:.2f}, {meas_y:.2f}, {meas_theta:.2f}]', throttle_duration_sec=1.0)
-                self.get_logger().info(f'Prior mu = [{self.mu[0]:.2f}, {self.mu[1]:.2f}, {self.mu[2]:.2f}]', throttle_duration_sec=1.0)
+        if not self.detected_tag_ids:
+            self.get_logger().info('No tags detected for correction step.', throttle_duration_sec=2.0)
+            self.get_logger().info(f'Prior mu = [{self.mu[0]:.2f}, {self.mu[1]:.2f}, {self.mu[2]:.2f}]', throttle_duration_sec=2.0)
+            self.publish_ekf_odom()
+        else:
+            for tag_id in self.detected_tag_ids:
+                if tag_id not in self.tag_map:
+                    self.get_logger().warning(f'Detected tag {tag_id} not in tag map, skipping.', throttle_duration_sec=2.0)
+                    continue
 
-                # Measurement prediction h(mu)
-                h_mu = self.mu.copy()  
+                tag_frame = tag_id
 
-                # Measurement residual
-                y_k = z - h_mu
-                y_k[2] = wrap_angle(y_k[2])
+                try:
+                    t = self.tf_buffer.lookup_transform(self.base_frame, tag_frame, rclpy.time.Time())
+                    T_base_tag = tfmsg_to_matrix(t)
+                    
+                    # Get T_map_tag from tag_map
+                    T_map_tag = self.tag_map[tag_id]
+                    
+                    # Final estimate
+                    T_map_base = T_map_tag @ invert_homogen(T_base_tag)
+                    
+                    # Extract measurement z = [x, y, theta] from T_map_cam
+                    meas_x = T_map_base[0, 3]
+                    meas_y = T_map_base[1, 3]
+                    meas_theta = atan2(T_map_base[1, 0], T_map_base[0, 0])
+                    z = np.array([meas_x, meas_y, meas_theta])
+                    
+                    # logs
+                    self.get_logger().info(f'Found TF {self.odom_frame} -> {tag_frame}', throttle_duration_sec=1.0)
+                    self.get_logger().info(f'T_base_tag:\n{T_base_tag}', throttle_duration_sec=1.0)
+                    self.get_logger().info(f'Inverted T_tag_odom:\n{invert_homogen(T_base_tag)}', throttle_duration_sec=1.0)
+                    self.get_logger().info(f'map->tag {tag_id}:\n{T_map_tag}', throttle_duration_sec=1.0)
+                    self.get_logger().info(f'Estimated T_map_odom from tag {tag_id}:\n{T_map_base}', throttle_duration_sec=1.0)
+                    self.get_logger().info(f'Correction from tag {tag_id}: z = [{meas_x:.2f}, {meas_y:.2f}, {meas_theta:.2f}]', throttle_duration_sec=1.0)
+                    self.get_logger().info(f'Prior mu = [{self.mu[0]:.2f}, {self.mu[1]:.2f}, {self.mu[2]:.2f}]', throttle_duration_sec=1.0)
 
-                # Measurement covariance R
-                R = np.diag([self.default_var_xy, self.default_var_xy, self.default_var_theta])
+                    # Measurement prediction h(mu)
+                    h_mu = self.mu.copy()  
 
-                # Kalman Gain
-                S = self.Sigma + R
-                K = self.Sigma @ np.linalg.inv(S)
+                    # Measurement residual
+                    y_k = z - h_mu
+                    y_k[2] = wrap_angle(y_k[2])
 
-                # Update state
-                self.mu = self.mu + K @ y_k
-                self.mu[2] = wrap_angle(self.mu[2])
+                    # Measurement covariance R
+                    R = np.diag([self.default_var_xy, self.default_var_xy, self.default_var_theta])
 
-                # Update covariance
-                self.Sigma = (np.eye(3) - K) @ self.Sigma
+                    # Kalman Gain
+                    S = self.Sigma + R
+                    K = self.Sigma @ np.linalg.inv(S)
 
-            except Exception:
-                # TF lookup failed for this tag, skip
-                continue
+                    # Update state
+                    self.mu = self.mu + K @ y_k
+                    self.mu[2] = wrap_angle(self.mu[2])
+
+                    # Update covariance
+                    self.Sigma = (np.eye(3) - K) @ self.Sigma
+
+                    # Publish updated odometry for visualization
+                    self.publish_ekf_odom()
+
+                except Exception as e:
+                    self.get_logger().info(f"TF failed for {tag_id}: {e}")
+                    continue
 
 
         # 3. Publish map->odom transform
