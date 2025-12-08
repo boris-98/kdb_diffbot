@@ -87,29 +87,51 @@ def generate_launch_description():
         )
     )
 
-    map_localization_node = Node(
-        package="kdb_diffbot",
-        executable="map_localization_node",
-        name="map_localization_node",
-        parameters=[{"use_sim_time": True}],
-        output="screen"
+    # Get the path to the package share directory
+    apriltag_ros_share_dir = get_package_share_directory('apriltag_ros')
+
+    # Get the path to the tags_36h11.yaml file
+    tags_36h11_yaml_file = os.path.join(apriltag_ros_share_dir, 'cfg', 'tags_36h11.yaml')
+    print("AprilTag parameter file path:", tags_36h11_yaml_file)
+
+    apriltag_ros_spawner = Node(
+        package='apriltag_ros',
+        executable='apriltag_node',
+        name='apriltag_node',
+        output='screen',
+        remappings=[
+            ('image_rect', '/camera/image_raw'),
+            ('camera_info', '/camera/camera_info')
+        ],
+        parameters=[tags_36h11_yaml_file]
+    )
+    delayed_apriltag_ros_spawner = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=spawn_entity,
+            on_exit=[apriltag_ros_spawner],
+        )
     )
 
-    manual_map_publisher = Node(
+    ekf_node = Node(
         package='kdb_diffbot',
-        executable='manual_map_publisher',
-        name='manual_map_publisher',
+        executable='ekf_localization_node.py',  # or 'ekf_localization' if you removed .py
+        name='ekf_localization',
+        output='screen',
         parameters=[{
-            'map_file': map_file_path,
-            'resolution': 0.02,
-            'origin_x': 0.0,
-            'origin_y': 0.0,
+            'tag_map_yaml': os.path.join(get_package_share_directory(package_name), 'config', 'maze_tag_map.yaml'),#'tag_map.yaml'),
+            'map_frame': 'map',
+            'odom_frame': 'odom',
+            'base_frame': 'base_link',
             'use_sim_time': True
-        }],
-        output='screen'
+        }]
     )
 
-
+    delayed_ekf_node_spawner = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=spawn_entity,
+            on_exit=[ekf_node],
+        )
+    )
 
     # Code for delaying a node (I haven't tested how effective it is)
     # 
@@ -138,6 +160,7 @@ def generate_launch_description():
         spawn_entity,
         delayed_diff_drive_spawner, # bili su obicni samo bez delayed
         delayed_joint_broad_spawner,
-        manual_map_publisher,
-        map_localization_node
+        delayed_apriltag_ros_spawner,
+        delayed_ekf_node_spawner,
+	ekf_sim_test
     ])

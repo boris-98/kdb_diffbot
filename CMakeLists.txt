@@ -27,27 +27,28 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
-add_executable(manual_map_publisher src/manual_map_publisher.cpp)
-add_executable(map_localization_node src/map_localization_node.cpp)
-ament_target_dependencies(manual_map_publisher 
-  rclcpp 
-  nav_msgs
-  OpenCV
-)
-ament_target_dependencies(map_localization_node 
-  rclcpp 
-  geometry_msgs
-  tf2
-  tf2_ros
-)
-install(TARGETS 
-  manual_map_publisher
-  DESTINATION lib/${PROJECT_NAME}
-)
-install(TARGETS
-  map_localization_node
-  DESTINATION lib/${PROJECT_NAME}
-)
+# below are lines for old C++ test nodes, currently not in use
+# add_executable(manual_map_publisher src/manual_map_publisher.cpp)
+# add_executable(map_localization_node src/map_localization_node.cpp)
+# ament_target_dependencies(manual_map_publisher 
+#   rclcpp 
+#   nav_msgs
+#   OpenCV
+# )
+# ament_target_dependencies(map_localization_node 
+#   rclcpp 
+#   geometry_msgs
+#   tf2
+#   tf2_ros
+# )
+# install(TARGETS 
+#   manual_map_publisher
+#   DESTINATION lib/${PROJECT_NAME}
+# )
+# install(TARGETS
+#   map_localization_node
+#   DESTINATION lib/${PROJECT_NAME}
+# )
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -63,6 +64,13 @@ endif()
 install(
   DIRECTORY config description launch worlds maps
   DESTINATION share/${PROJECT_NAME}
+)
+
+### --- Install python nodes (scripts) -----------------------
+# install Python executable scripts into lib/<project>
+install(PROGRAMS
+  py_nodes/ekf_localization_node.py
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_package()

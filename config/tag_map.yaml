@@ -1,0 +1,36 @@
+tag_0:
+  x: 3.0
+  y: 0.0
+  z: 0.4
+  roll: 1.5708
+  pitch: 0.0
+  yaw: -1.5708
+
+# 1)
+# x_tag = -Y_map 
+# y_tag = +Z_map 
+# z_tag = -X_map 
+# roll  = +1.5708 rad ( +90° ) 
+# pitch =  0.0 rad 
+# yaw   = -1.5708 rad ( -90° )
+# 2)
+# x_tag =  X_map
+# y_tag = -Z_map
+# z_tag =  Y_map
+# roll  = -1.57079632679   (-90.0°)
+# pitch =  0.0
+# yaw   =  0.0
+# 3)
+# x_tag =  Y_map
+# y_tag = -Z_map
+# z_tag =  X_map
+# roll  = -1.57079632679   (-90.0°)
+# pitch =  0.0
+# yaw   =  1.57079632679   ( 90.0°)
+# 4)
+# x_tag = -X_map
+# y_tag = -Z_map
+# z_tag =  Y_map
+# roll  = -1.57079632679   (-90.0°)
+# pitch = 0.0
+# yaw   =  3.14159265359   (180.0°)
