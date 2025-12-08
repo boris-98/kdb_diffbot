@@ -161,6 +161,5 @@ def generate_launch_description():
         delayed_diff_drive_spawner, # bili su obicni samo bez delayed
         delayed_joint_broad_spawner,
         delayed_apriltag_ros_spawner,
-        delayed_ekf_node_spawner,
-	ekf_sim_test
+        delayed_ekf_node_spawner
     ])
