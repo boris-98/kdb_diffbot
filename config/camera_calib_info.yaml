@@ -1,6 +1,6 @@
 image_width: 640
 image_height: 480
-camera_name: usb_2.0_camera:_usb_camera
+camera_name: default_cam 
 camera_matrix:
   rows: 3
   cols: 3
