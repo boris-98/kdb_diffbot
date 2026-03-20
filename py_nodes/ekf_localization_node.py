@@ -370,16 +370,26 @@ class EKFLocalizationNode(Node):
         omega = odom_msg.twist.twist.angular.z
 
         theta = self.mu[2]
+        # if abs(omega) < 1e-6:
+        #     # Straight line motion
+        #     dx = v * dt 
+        #     dy = 0.0
+        #     dtheta = 0.0
+        # else:
+        #     # Circular motion
+        #     dx = -(v / omega) * sin(theta) + (v / omega) * sin(theta + omega * dt)
+        #     dy = (v / omega) * cos(theta) - (v / omega) * cos(theta + omega * dt)
+        #     dtheta = omega * dt
         if abs(omega) < 1e-6:
-            # Straight line motion
-            dx = v * dt 
-            dy = 0.0
+            # very small rotation -> straight line
+            dx = v * dt * cos(theta)
+            dy = v * dt * sin(theta)
             dtheta = 0.0
         else:
-            # Circular motion
-            dx = -(v / omega) * sin(theta) + (v / omega) * sin(theta + omega * dt)
-            dy = (v / omega) * cos(theta) - (v / omega) * cos(theta + omega * dt)
+            # better behaved version (handles negative v naturally)
             dtheta = omega * dt
+            dx = (v / omega) * (sin(theta + dtheta) - sin(theta))
+            dy = (v / omega) * (-cos(theta + dtheta) + cos(theta))
 
         # Update mu
         self.mu[0] += dx

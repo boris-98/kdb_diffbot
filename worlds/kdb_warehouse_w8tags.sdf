@@ -1,0 +1,137 @@
+<sdf version='1.10'>
+  <world name='empty'>
+    <physics name='1ms' type='ignored'>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+    <plugin name='gz::sim::systems::Physics' filename='gz-sim-physics-system'/>
+    <plugin name='gz::sim::systems::UserCommands' filename='gz-sim-user-commands-system'/>
+    <plugin name='gz::sim::systems::SceneBroadcaster' filename='gz-sim-scene-broadcaster-system'/>
+    <plugin name='gz::sim::systems::Sensors' filename='gz-sim-sensors-system'>
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin name='gz::sim::systems::Contact' filename='gz-sim-contact-system'/>
+    <gravity>0 0 -9.8000000000000007</gravity>
+    <magnetic_field>5.5644999999999998e-06 2.2875799999999999e-05 -4.2388400000000002e-05</magnetic_field>
+    <atmosphere type='adiabatic'/>
+    <scene>
+      <ambient>0.400000006 0.400000006 0.400000006 1</ambient>
+      <background>0.699999988 0.699999988 0.699999988 1</background>
+      <shadows>true</shadows>
+    </scene>
+    <model name='ground_plane'>
+      <static>true</static>
+      <link name='link'>
+        <collision name='collision'>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <surface>
+            <friction>
+              <ode/>
+            </friction>
+            <bounce/>
+            <contact/>
+          </surface>
+        </collision>
+        <visual name='visual'>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.800000012 0.800000012 0.800000012 1</ambient>
+            <diffuse>0.800000012 0.800000012 0.800000012 1</diffuse>
+            <specular>0.800000012 0.800000012 0.800000012 1</specular>
+          </material>
+        </visual>
+        <pose>0 0 0 0 0 0</pose>
+        <inertial>
+          <pose>0 0 0 0 0 0</pose>
+          <mass>1</mass>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+        </inertial>
+        <enable_wind>false</enable_wind>
+      </link>
+      <pose>0 0 0 0 0 0</pose>
+      <self_collide>false</self_collide>
+    </model>
+    <include>
+      <uri>file:///home/boris/.gz/fuel/fuel.gazebosim.org/openrobotics/models/depot/6</uri>
+      <name>Depot</name>
+      <pose>13.045135470240115 0.13677751092082205 0 0 0 0</pose>
+    </include>
+    <include>
+      <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00000</uri>
+      <name>tag36_11_00000</name>
+      <pose>14.5 -7.4900000000000002 0.29999999999999999 -1.5707899999225872 -1.5707900000980688 -7.0192512528637696e-11</pose>
+    </include>
+    <include>
+      <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00001</uri>
+      <name>tag36_11_00001</name>
+      <pose>17.5 -7.4900000000000002 0.29999999999999999 1.5707899999489094 -1.5707900000980688 -3.1399999999599983</pose>
+    </include>
+    <include>
+      <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00002</uri>
+      <name>tag36_11_00002</name>
+      <pose>20.370000000000001 -7.3700000000000001 0.29999999999999999 0 -1.5707900000629724 0</pose>
+    </include>
+    <include>
+      <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00003</uri>
+      <name>tag36_11_00003</name>
+      <pose>27.75 -7.3700000000000001 0.29999999999999999 0 -1.5707900000629724 0</pose>
+    </include>
+    <include>
+      <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00004</uri>
+      <name>tag36_11_00004</name>
+      <pose>23.75 -4.5999999999999996 0.29999999999999999 0 -1.5707900000629724 0</pose>
+    </include>
+    <include>
+      <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00005</uri>
+      <name>tag36_11_00005</name>
+      <pose>24.300000000000001 -2.8500000000000001 0.29999999999999999 1.5707899999225872 -1.5707900000980688 7.0192512528637696e-11</pose>
+    </include>
+    <include>
+      <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00006</uri>
+      <name>tag36_11_00006</name>
+      <pose>16.82 -1.8 0.29999999999999999 -4.6355034119891524e-11 -1.5707900000805206 -3.1399999999535941</pose>
+    </include>
+    <include>
+      <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00007</uri>
+      <name>tag36_11_00007</name>
+      <pose>3 -1.5 0.29999999999999999 1.570790000019102 -1.5707900000629724 3.1399999999857187</pose>
+    </include>
+    <light name='sun' type='directional'>
+      <pose>0 0 10 0 0 0</pose>
+      <cast_shadows>true</cast_shadows>
+      <intensity>1</intensity>
+      <direction>-0.5 0.10000000000000001 -0.90000000000000002</direction>
+      <diffuse>0.800000012 0.800000012 0.800000012 1</diffuse>
+      <specular>0.200000003 0.200000003 0.200000003 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <linear>0.01</linear>
+        <constant>0.90000000000000002</constant>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <spot>
+        <inner_angle>0</inner_angle>
+        <outer_angle>0</outer_angle>
+        <falloff>0</falloff>
+      </spot>
+    </light>
+  </world>
+</sdf>

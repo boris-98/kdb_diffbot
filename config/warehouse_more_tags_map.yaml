@@ -1,0 +1,169 @@
+# config file used for kdb_warehouse_w8tags.sdf
+
+tag_0:
+  x: 14.5
+  y: -7.49
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: 3.1416
+
+tag_1:
+  x: 17.5
+  y: -7.49
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: 3.1416
+
+tag_2:
+  x: 20.37
+  y: -7.37
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: -1.5708
+
+tag_3:
+  x: 27.75
+  y: -7.37
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: -1.5708
+
+tag_4:
+  x: 23.75
+  y: -4.6
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: -1.5708
+
+tag_5:
+  x: 24.3
+  y: -2.85
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: 0.0
+
+tag_6:
+  x: 16.82
+  y: -1.8
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: 1.5708
+
+tag_7:
+  x: 2.0
+  y: -0.5
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: -1.5708
+
+tag_8:
+  x: 4.0
+  y: -2.0
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: 3.1416
+
+tag_9:
+  x: 6.0
+  y: -2.0
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: 3.1416
+
+tag_10:
+  x: 8.0
+  y: -2.0
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: 3.1416
+
+tag_11:
+  x: 10.0
+  y: -2.0
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: 3.1416
+
+tag_12:
+  x: 15.58
+  y: -2.0
+  z: 0.3
+  roll: 1.5708
+  pitch: 0.0
+  yaw: -1.5708
+
+# 1)
+# x_tag = -Y_map 
+# y_tag = +Z_map 
+# z_tag = -X_map 
+# roll  = +1.5708 rad ( +90° ) 
+# pitch =  0.0 rad 
+# yaw   = -1.5708 rad ( -90° )
+# 2)
+# x_tag =  X_map
+# y_tag = -Z_map
+# z_tag =  Y_map
+# roll  = -1.57079632679   (-90.0°)
+# pitch =  0.0
+# yaw   =  0.0
+# 3)
+# x_tag =  Y_map
+# y_tag = -Z_map
+# z_tag =  X_map
+# roll  = -1.57079632679   (-90.0°)
+# pitch =  0.0
+# yaw   =  1.57079632679   ( 90.0°)
+# 4)
+# x_tag = -X_map
+# y_tag = -Z_map
+# z_tag =  Y_map
+# roll  = -1.57079632679   (-90.0°)
+# pitch = 0.0
+# yaw   =  3.14159265359   (180.0°)
+# 5)
+# x_tag =  X_map
+# y_tag =  Z_map
+# z_tag = -Y_map
+# roll  =  1.57079632679   (+90.0°)
+# pitch =  0.0
+# yaw   =  0.0
+# 6)
+# x_tag = -X_map
+# y_tag =  Z_map
+# z_tag =  Y_map
+# roll  =  1.57079632679   (+90.0°)
+# pitch =  0.0
+# yaw   =  3.14159265359   (180.0°)
+# 7) 
+# x_tag = -x_map
+# y_tag = z_map
+# z_tag = y_map
+# roll: 1.5708
+# pitch: 0.0
+# yaw: 3.1416
+# 8)
+# x_tag = x_map
+# y_tag = z_map
+# z_tag = -y_map
+# roll: 1.5708
+# pitch: 0.0
+# yaw: 0.0
+# 9)
+# x_tag = y_map
+# y_tag = z_map
+# z_tag = x_map
+# roll: 1.5708
+# pitch: 0.0
+# yaw: 1.5708

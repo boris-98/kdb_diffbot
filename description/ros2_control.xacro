@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-    <ros2_control name="RealRobot" type="system">
+    <!-- <ros2_control name="RealRobot" type="system">
         <hardware>
             <plugin>diffdrive_esp/DiffDriveEspHardware</plugin>
             <param name="left_wheel_name">left_wheel_joint</param>
@@ -28,11 +28,12 @@
             <state_interface name="position" />
             <state_interface name="velocity" />
         </joint>
-    </ros2_control>
+    </ros2_control> -->
 
-    <!-- <ros2_control name="GazeboSystem" type="system">
+    <ros2_control name="GazeboSystem" type="system">
         <hardware>
-            <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+            <!-- <plugin>gazebo_ros2_control/GazeboSystem</plugin> -->
+            <plugin>gz_ros2_control/GazeboSimSystem</plugin>
         </hardware>
         <joint name="left_wheel_joint">
             <command_interface name="velocity">
@@ -50,11 +51,16 @@
             <state_interface name="position" />
             <state_interface name="velocity" />
         </joint>
-    </ros2_control> -->
+    </ros2_control>
         
     <gazebo>
-        <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
+        <!-- <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so"> -->
+        <plugin name="gz_ros2_control::GazeboSimROS2ControlPlugin" filename="libgz_ros2_control-system.so">
             <parameters>$(find kdb_diffbot)/config/my_controllers.yaml</parameters>
+        </plugin>
+        <plugin name="gz::sim::systems::PosePublisher" filename="gz-sim-pose-publisher-system">
+            <publish_model_pose>true</publish_model_pose>
+            <update_frequency>10</update_frequency>
         </plugin>
     </gazebo>
 

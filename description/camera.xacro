@@ -68,9 +68,10 @@
 
         <sensor name="camera" type="camera">
             <pose> 0 0 0 0 0 0 </pose>
-            <visualize>false</visualize>
+            <visualize>true</visualize>
             <update_rate>10</update_rate>
             <camera>
+                <camera_info_topic>camera/camera_info</camera_info_topic>
                 <horizontal_fov>1.7802358</horizontal_fov>
                 <image>
                     <width>640</width>
@@ -82,9 +83,11 @@
                     <far>10</far>
                 </clip>
             </camera>
-            <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+            <!-- <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
                 <frame_name>camera_link_optical</frame_name>
-            </plugin>
+            </plugin> -->
+            <topic>camera/image_raw</topic>
+            <gz_frame_id>camera_link_optical</gz_frame_id>
         </sensor>
     </gazebo>
 

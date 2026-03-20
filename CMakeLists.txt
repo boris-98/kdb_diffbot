@@ -72,5 +72,13 @@ install(PROGRAMS
   py_nodes/ekf_localization_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
+install(PROGRAMS
+  py_nodes/g2o_generator_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+install(PROGRAMS
+  py_nodes/g2o_poseonly_generator_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_package()
