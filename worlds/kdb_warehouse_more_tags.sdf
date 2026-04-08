@@ -77,12 +77,12 @@
     <include>
       <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00000</uri>
       <name>tag36_11_00000</name>
-      <pose>14.5 -7.4900000000000002 0.29999999999999999 1.5707926536057681 -1.5707926536057681 3.1415926535746808</pose>
+      <pose>14.5 -7.4900000000000002 0.29999999999999999 1.5707926535755425 -1.5707926536057681 -3.141592653559568</pose>
     </include>
     <include>
       <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00001</uri>
       <name>tag36_11_00001</name>
-      <pose>17.5 -7.4900000000000002 0.29999999999999999 1.5707899997821946 -1.5707900002384561 -3.1399999998039867</pose>
+      <pose>17.5 -7.4900000000000002 0.29999999999999999 1.5707899997427064 -1.5707900002735535 -3.1399999997562413</pose>
     </include>
     <include>
       <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00002</uri>
@@ -102,42 +102,47 @@
     <include>
       <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00005</uri>
       <name>tag36_11_00005</name>
-      <pose>24.300000000000001 -2.8500000000000001 0.29999999999999999 1.5707899999664561 -1.5707900001331654 2.632248423688565e-11</pose>
+      <pose>24.300000000000001 -2.8500000000000001 0.29999999999999999 1.5707900000454231 -1.5707900001858106 -5.2645260520049515e-11</pose>
     </include>
     <include>
       <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00006</uri>
       <name>tag36_11_00006</name>
-      <pose>16.82 -1.8 0.29999999999999999 -1.3291594178508112e-10 -1.570790000168262 -3.1399999998670745</pose>
+      <pose>16.82 -1.8 0.29999999999999999 -1.5879307846856295e-10 -1.5707900002209076 -3.1399999998412316</pose>
     </include>
     <include>
       <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00007</uri>
       <name>tag36_11_00007</name>
-      <pose>2 -0.5 0.29999999999999999 7.3464102063036516e-06 -1.5707926537568964 -7.3464102063036575e-06</pose>
+      <pose>2 -0.5 0.29999999999999999 7.3464102069646084e-06 -1.5707926538475765 -7.346410206964616e-06</pose>
     </include>
     <include>
       <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00008</uri>
       <name>tag36_11_00008</name>
-      <pose>4 -2 0.29999999999999999 -1.5707926536057679 -1.5707926536662187 7.3464084826252964e-06</pose>
+      <pose>4 -2 0.29999999999999999 -1.5707926537040007 -1.5707926536662187 7.3465293855404062e-06</pose>
     </include>
     <include>
       <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00009</uri>
       <name>tag36_11_00009</name>
-      <pose>6 -2 0.29999999999999999 -1.5707926536057679 -1.5707926536662187 7.3464084826252964e-06</pose>
+      <pose>6 -2 0.29999999999999999 -1.5707926537040007 -1.5707926536662187 7.3465293855404062e-06</pose>
     </include>
     <include>
       <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00010</uri>
       <name>tag36_11_00010</name>
-      <pose>8 -2 0.29999999999999999 -1.5707926536057679 -1.5707926536662187 7.3464084826252964e-06</pose>
+      <pose>8 -2 0.29999999999999999 -1.5707926537040007 -1.5707926536662187 7.3465293855404062e-06</pose>
     </include>
     <include>
       <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00011</uri>
       <name>tag36_11_00011</name>
-      <pose>10 -2 0.29999999999999999 -1.5707926536057679 -1.5707926536662187 7.3464084826252964e-06</pose>
+      <pose>10 -2 0.29999999999999999 -1.5707926537040007 -1.5707926536662187 7.3465293855404062e-06</pose>
     </include>
     <include>
       <uri>file:///home/boris/gazebo_apriltag/models/Apriltag36_11_00012</uri>
       <name>tag36_11_00012</name>
-      <pose>15.58 -2 0.29999999999999999 -7.3464102061182166e-06 -1.5707926536359933 7.3464102061182183e-06</pose>
+      <pose>15.58 -2 0.29999999999999999 -7.3464102059984275e-06 -1.5707926537266703 7.3464102059984309e-06</pose>
+    </include>
+    <include>
+      <uri>file:///home/boris/.gz/fuel/fuel.gazebosim.org/openrobotics/models/aws_robomaker_warehouse_clutteringd_01/4</uri>
+      <name>aws_robomaker_warehouse_ClutteringD_01</name>
+      <pose>2.5238900184631348 -1.0944013595581055 -0.34435400366783142 0 0 0</pose>
     </include>
     <light name='sun' type='directional'>
       <pose>0 0 10 0 0 0</pose>
