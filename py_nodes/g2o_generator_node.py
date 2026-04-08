@@ -141,8 +141,12 @@ class G2oGeneratorNode(Node):
         self.default_var_xy = float(self.get_parameter('default_meas_var_xy').value)
         self.default_var_theta = float(self.get_parameter('default_meas_var_theta').value)
 
-        # Detected tags storage
-        self.detected_tag_ids = []
+        # Detected tags storage (capturing TF at detection time to avoid timing skew)
+        self.pending_measurements = []        # list of (tag_id, TransformStamped)
+        self.processed_tags_per_pose = set()  # (pose_id, tag_id) pairs already written
+        # Landmark outlier rejection state
+        self.landmark_observations_global = {}  # tag_id -> list of predicted global [x,y] positions
+        self.pending_landmarks = {}             # tag_id -> (z, predicted_global, margin, pose_id) buffered first obs
         
         # # Load global poses for tags from YAML file
         # tag_map_yaml = self.get_parameter('tag_map_yaml').value
@@ -219,14 +223,41 @@ class G2oGeneratorNode(Node):
         self.mu[1] += dy
         self.mu[2] =  wrap_angle(self.mu[2] + dtheta)
         #self.get_logger().info(f'Predicted mu = [{self.mu[0]:.2f}, {self.mu[1]:.2f}, {self.mu[2]:.2f}] from odom v={v:.2f} omega={omega:.2f} dt={dt:.2f}')
-
+        # self.last_odom_msg = msg
+        # p = msg.pose.pose.position
+        # q = msg.pose.pose.orientation
+        # self.mu[0] = p.x
+        # self.mu[1] = p.y
+        # self.mu[2] = quat_to_yaw(q)
 
     def detections_callback(self, msg: AprilTagDetectionArray):
         if len(msg.detections) == 0:
-            self.detected_tag_ids = []
+            self.pending_measurements = []
             return
+        
+        # Reject measurements during fast rotation
+        # because the TF chain base_link->camera and camera->tag may be from different instants
+        if self.last_odom_msg is not None:
+            omega = abs(self.last_odom_msg.twist.twist.angular.z)
+            if omega > 0.3:  # rad/s threshold
+                self.get_logger().info(f'Skipping tag detections during fast rotation (omega={omega:.2f})', throttle_duration_sec=1.0)
+                self.pending_measurements = []
+                return
 
-        self.detected_tag_ids = [f"tag_{det.id}" for det in msg.detections]
+        measurements = []        
+        for det in msg.detections:
+            tag_id = f"tag_{det.id}"
+            try:
+                # Capture TF now at detection time, not later in the timer.
+                # This ensures base_link->camera and camera->tag are from the same instant.
+                t = self.tf_buffer.lookup_transform(
+                    self.base_frame, tag_id, rclpy.time.Time())
+                measurements.append((tag_id, t, det.decision_margin))
+                if (det.decision_margin < 30):
+                    self.get_logger().info(f'Low confidence detection for {tag_id} with margin {det.decision_margin:.2f}', throttle_duration_sec=2.0)
+            except Exception as e:
+                self.get_logger().info(f"TF lookup failed for {tag_id} in detection callback: {e}")
+        self.pending_measurements = measurements
     
     # listens on /model/my_bot/pose published by gazebo plugin for ground truth    
     def gtruth_callback(self, msg: PoseStamped):
@@ -242,48 +273,115 @@ class G2oGeneratorNode(Node):
 
 
         # 2. Measurement
-        if not self.detected_tag_ids:
+        if not self.pending_measurements:
             self.get_logger().info('No tags detected for correction step.', throttle_duration_sec=2.0)
             self.get_logger().info(f'mu = [{self.mu[0]:.2f}, {self.mu[1]:.2f}, {self.mu[2]:.2f}]', throttle_duration_sec=2.0)
         else:
-            for tag_id in self.detected_tag_ids:
-                # if tag_id not in self.tag_map:
-                #     self.get_logger().warning(f'Detected tag {tag_id} not in tag map, skipping.', throttle_duration_sec=2.0)
-                #     continue
-
-                tag_frame = tag_id
-
-                try:
-                    t = self.tf_buffer.lookup_transform(self.base_frame, tag_frame, rclpy.time.Time())
-                    T_base_tag = tfmsg_to_matrix(t)
-                except Exception as e:
-                    self.get_logger().info(f"TF failed for {tag_id}: {e}")
+            for tag_id, t, margin in self.pending_measurements:
+                # Skip duplicate observations from the same pose
+                key = (self.pose_id, tag_id)
+                if key in self.processed_tags_per_pose:
                     continue
+                self.processed_tags_per_pose.add(key)
+
+                T_base_tag = tfmsg_to_matrix(t)
                     
                 # Relative measurement in robot frame
                 x_rel = T_base_tag[0, 3]
                 y_rel = T_base_tag[1, 3]
                 z = np.array([x_rel, y_rel])
                 
-                if tag_id not in self.landmark_ids: # create landmark vertex if tag is first time seen
-                    landmark_vertex_id = self.next_landmark_id
-                    self.landmark_ids[tag_id] = self.next_landmark_id
-                    self.next_landmark_id += 1
+                # Predict where this observation places the landmark in global frame
+                theta = self.mu[2]
+                R = np.array([[cos(theta), -sin(theta)],
+                                [sin(theta), cos(theta)]])
+                predicted_global_pos = self.mu[0:2] + R @ z
+                                
+                # if tag_id not in self.landmark_ids: # create landmark vertex if tag is first time seen
+                #     # If margin is too low, don't use this detection to create a landmark (it will likely be an outlier and can mess up the graph optimization)
+                #     if margin < 20:
+                #         self.get_logger().info(f'Skipping low confidence detection for {tag_id} with margin {margin:.2f}', throttle_duration_sec=2.0)
+                #         continue
+                #     landmark_vertex_id = self.next_landmark_id
+                #     self.landmark_ids[tag_id] = self.next_landmark_id
+                #     self.next_landmark_id += 1
                     
-                    # Initialize landmark position in global frame using current robot pose + relative measurement
-                    theta = self.mu[2]
-                    R = np.array([[cos(theta), -sin(theta)],
-                                    [sin(theta), cos(theta)]])
-                    landmark_global_pos = self.mu[0:2] + R @ z  # Transform relative
+                #     self.landmark_observations_global[tag_id] = [predicted_global_pos.copy()]    # save global position estimate for outlier rejection in future detections
+                #     self.write_vertex_xy(landmark_vertex_id, predicted_global_pos)
+                if tag_id not in self.landmark_ids:
+                    # --- UNSEEN LANDMARK: use pending buffer to require 2 agreeing observations ---
+                    if margin < 20:
+                        self.get_logger().info(f'Skipping low confidence detection for {tag_id} with margin {margin:.2f}', throttle_duration_sec=2.0)
+                        continue
                     
-                    self.write_vertex_xy(landmark_vertex_id, landmark_global_pos)
+                    if tag_id not in self.pending_landmarks:
+                        # First ever observation — buffer it, don't create vertex yet
+                        self.pending_landmarks[tag_id] = (z.copy(), predicted_global_pos.copy(), margin, self.pose_id)
+                        self.get_logger().info(f'Buffered first observation of {tag_id} from pose {self.pose_id}, waiting for confirmation')
+                        continue
+                    else:
+                        # Second+ observation — check if it agrees with the buffered first
+                        first_z, first_predicted, first_margin, first_pose_id = self.pending_landmarks[tag_id]
+                        # Require minimum pose gap to avoid confirming from same viewpoint
+                        # (PnP flip produces same wrong answer from same viewing angle)
+                        if self.pose_id - first_pose_id < 3:
+                            continue
+                        disagreement = np.linalg.norm(predicted_global_pos - first_predicted)
+                        
+                        if disagreement > 0.5:
+                            # First and second disagree — replace buffer with the new one
+                            self.pending_landmarks[tag_id] = (z.copy(), predicted_global_pos.copy(), margin, self.pose_id)
+                            self.get_logger().info(
+                                f'Observation of {tag_id} from pose {self.pose_id} disagrees with buffered '
+                                f'(from pose {first_pose_id}) by {disagreement:.2f}m — replacing buffer')
+                            continue
+                        
+                        # First and second agree — create the landmark
+                        del self.pending_landmarks[tag_id]
+                        landmark_vertex_id = self.next_landmark_id
+                        self.landmark_ids[tag_id] = self.next_landmark_id
+                        self.next_landmark_id += 1
+                        
+                        # Use whichever observation was closer (more accurate) for vertex position
+                        first_dist = np.linalg.norm(first_z)
+                        curr_dist = np.linalg.norm(z)
+                        init_pos = predicted_global_pos if curr_dist < first_dist else first_predicted
+                        
+                        self.write_vertex_xy(landmark_vertex_id, init_pos)
+                        self.landmark_observations_global[tag_id] = [first_predicted.copy(), predicted_global_pos.copy()]
+                        
+                        # Write the buffered first observation's edge
+                        first_var = self.default_var_xy + 0.02 * first_dist**2 + max(0, (50 - first_margin)) * 0.01
+                        first_info_matrix = np.diag([1.0 / first_var, 1.0 / first_var])
+                        self.write_edge_se2_xy(first_pose_id, landmark_vertex_id, first_z, first_info_matrix)
+                        
+                        self.get_logger().info(
+                            f'Created landmark {tag_id} (vertex {landmark_vertex_id}) confirmed by '
+                            f'poses {first_pose_id} and {self.pose_id}')
                     
                 else:
-                    landmark_vertex_id = self.landmark_ids[tag_id] 
+                    # --- EXISTING LANDMARK ---
+                    # Consistency check: compare against median of all previous observations
+                    prev_obs = np.array(self.landmark_observations_global[tag_id])
+                    median_pos = np.median(prev_obs, axis=0)
+                    disagreement = np.linalg.norm(predicted_global_pos - median_pos)
+                    
+                    if disagreement > 0.5:
+                        self.get_logger().info(
+                            f'Rejecting {tag_id} obs from pose {self.pose_id}: '
+                            f'predicted ({predicted_global_pos[0]:.2f}, {predicted_global_pos[1]:.2f}) '
+                            f'vs median ({median_pos[0]:.2f}, {median_pos[1]:.2f}), '
+                            f'disagreement={disagreement:.2f}m')
+                        continue
+                    self.landmark_observations_global[tag_id].append(predicted_global_pos.copy())
+                    landmark_vertex_id = self.landmark_ids[tag_id]
                     
                 # Add observation edge between current pose and landmark
-                info_matrix = np.diag([1.0 / self.default_var_xy, 1.0 / self.default_var_xy])  # Information matrix is inverse of covariance
-                
+                #info_matrix = np.diag([1.0 / self.default_var_xy, 1.0 / self.default_var_xy])  # Information matrix is inverse of covariance
+                dist = sqrt(x_rel**2 + y_rel**2)
+                # Scale variance: grows with distance**2, shrinks with margin base variance + distance penalty + low-margin penalty
+                var = self.default_var_xy + 0.02 * dist**2 + max(0, (50 - margin)) * 0.01
+                info_matrix = np.diag([1.0 / var, 1.0 / var])
                 self.write_edge_se2_xy(self.pose_id, landmark_vertex_id, z, info_matrix)
                 
 
