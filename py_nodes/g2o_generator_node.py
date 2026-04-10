@@ -286,16 +286,19 @@ class G2oGeneratorNode(Node):
 
                 T_base_tag = tfmsg_to_matrix(t)
                     
-                # Relative measurement in robot frame
+                # Relative measurement in robot frame (SE2: x, y, theta)
                 x_rel = T_base_tag[0, 3]
                 y_rel = T_base_tag[1, 3]
-                z = np.array([x_rel, y_rel])
+                theta_rel = atan2(T_base_tag[1, 0], T_base_tag[0, 0])
+                z = np.array([x_rel, y_rel, theta_rel])
                 
                 # Predict where this observation places the landmark in global frame
                 theta = self.mu[2]
                 R = np.array([[cos(theta), -sin(theta)],
                                 [sin(theta), cos(theta)]])
-                predicted_global_pos = self.mu[0:2] + R @ z
+                predicted_global_xy = self.mu[0:2] + R @ z[0:2]
+                predicted_global_theta = wrap_angle(theta + theta_rel)
+                predicted_global_pos = predicted_global_xy  # XY only for consistency checks
                                 
                 # if tag_id not in self.landmark_ids: # create landmark vertex if tag is first time seen
                 #     # If margin is too low, don't use this detection to create a landmark (it will likely be an outlier and can mess up the graph optimization)
@@ -315,12 +318,12 @@ class G2oGeneratorNode(Node):
                         continue
                     
                     if tag_id not in self.pending_landmarks:
-                        # First ever observation — buffer it, don't create vertex yet
+                        # First ever observation - buffer it, don't create vertex yet
                         self.pending_landmarks[tag_id] = (z.copy(), predicted_global_pos.copy(), margin, self.pose_id)
                         self.get_logger().info(f'Buffered first observation of {tag_id} from pose {self.pose_id}, waiting for confirmation')
                         continue
                     else:
-                        # Second+ observation — check if it agrees with the buffered first
+                        # Second+ observation - check if it agrees with the buffered first
                         first_z, first_predicted, first_margin, first_pose_id = self.pending_landmarks[tag_id]
                         # Require minimum pose gap to avoid confirming from same viewpoint
                         # (PnP flip produces same wrong answer from same viewing angle)
@@ -329,31 +332,38 @@ class G2oGeneratorNode(Node):
                         disagreement = np.linalg.norm(predicted_global_pos - first_predicted)
                         
                         if disagreement > 0.5:
-                            # First and second disagree — replace buffer with the new one
+                            # First and second disagree - replace buffer with the new one
                             self.pending_landmarks[tag_id] = (z.copy(), predicted_global_pos.copy(), margin, self.pose_id)
                             self.get_logger().info(
                                 f'Observation of {tag_id} from pose {self.pose_id} disagrees with buffered '
-                                f'(from pose {first_pose_id}) by {disagreement:.2f}m — replacing buffer')
+                                f'(from pose {first_pose_id}) by {disagreement:.2f}m - replacing buffer')
                             continue
                         
-                        # First and second agree — create the landmark
+                        # First and second agree - create the landmark
                         del self.pending_landmarks[tag_id]
                         landmark_vertex_id = self.next_landmark_id
                         self.landmark_ids[tag_id] = self.next_landmark_id
                         self.next_landmark_id += 1
                         
                         # Use whichever observation was closer (more accurate) for vertex position
-                        first_dist = np.linalg.norm(first_z)
-                        curr_dist = np.linalg.norm(z)
-                        init_pos = predicted_global_pos if curr_dist < first_dist else first_predicted
+                        first_dist = np.linalg.norm(first_z[0:2])
+                        curr_dist = np.linalg.norm(z[0:2])
+                        if curr_dist < first_dist:
+                            init_xy = predicted_global_xy
+                            init_theta = predicted_global_theta
+                        else:
+                            init_xy = first_predicted
+                            first_theta_global = wrap_angle(self.mu[2] + first_z[2])  # approximate
+                            init_theta = first_theta_global
                         
-                        self.write_vertex_xy(landmark_vertex_id, init_pos)
+                        self.write_vertex_se2(landmark_vertex_id, [init_xy[0], init_xy[1], init_theta])
                         self.landmark_observations_global[tag_id] = [first_predicted.copy(), predicted_global_pos.copy()]
                         
                         # Write the buffered first observation's edge
-                        first_var = self.default_var_xy + 0.02 * first_dist**2 + max(0, (50 - first_margin)) * 0.01
-                        first_info_matrix = np.diag([1.0 / first_var, 1.0 / first_var])
-                        self.write_edge_se2_xy(first_pose_id, landmark_vertex_id, first_z, first_info_matrix)
+                        first_var_xy = self.default_var_xy + 0.02 * first_dist**2 + max(0, (50 - first_margin)) * 0.01
+                        first_var_th = self.default_var_theta + 0.05 * first_dist**2
+                        first_info_matrix = np.diag([1.0 / first_var_xy, 1.0 / first_var_xy, 1.0 / first_var_th])
+                        self.write_edge_se2(first_pose_id, landmark_vertex_id, first_z, first_info_matrix)
                         
                         self.get_logger().info(
                             f'Created landmark {tag_id} (vertex {landmark_vertex_id}) confirmed by '
@@ -380,9 +390,10 @@ class G2oGeneratorNode(Node):
                 #info_matrix = np.diag([1.0 / self.default_var_xy, 1.0 / self.default_var_xy])  # Information matrix is inverse of covariance
                 dist = sqrt(x_rel**2 + y_rel**2)
                 # Scale variance: grows with distance**2, shrinks with margin base variance + distance penalty + low-margin penalty
-                var = self.default_var_xy + 0.02 * dist**2 + max(0, (50 - margin)) * 0.01
-                info_matrix = np.diag([1.0 / var, 1.0 / var])
-                self.write_edge_se2_xy(self.pose_id, landmark_vertex_id, z, info_matrix)
+                var_xy = self.default_var_xy + 0.02 * dist**2 + max(0, (50 - margin)) * 0.01
+                var_th = self.default_var_theta + 0.05 * dist**2
+                info_matrix = np.diag([1.0 / var_xy, 1.0 / var_xy, 1.0 / var_th])
+                self.write_edge_se2(self.pose_id, landmark_vertex_id, z, info_matrix)
                 
 
     def generate_from_odom(self):
@@ -438,9 +449,9 @@ class G2oGeneratorNode(Node):
         x, y, theta = pose
         self.g2o_file.write(f"VERTEX_SE2 {vertex_id} {x} {y} {theta}\n") 
         
-    def write_vertex_xy(self, vertex_id, position):
-        x, y = position
-        self.g2o_file.write(f"VERTEX_XY {vertex_id} {x} {y}\n")
+    # def write_vertex_xy(self, vertex_id, position):
+    #     x, y = position
+    #     self.g2o_file.write(f"VERTEX_XY {vertex_id} {x} {y}\n")
 
     def write_edge_se2(self, from_id, to_id, measurement, info_matrix):
         dx, dy, dtheta = measurement
@@ -452,14 +463,14 @@ class G2oGeneratorNode(Node):
                 f"{I[2,2]}\n"
         )   # g2o stores only upper triangular of information matrix.
 
-    def write_edge_se2_xy(self, pose_id, landmark_id, measurement, info_matrix):
-        mx, my = measurement
-        I = info_matrix
-        self.g2o_file.write(
-            f"EDGE_SE2_XY {pose_id} {landmark_id} {mx} {my} "
-            f"{I[0,0]} {I[0,1]} "
-            f"{I[1,1]}\n"
-        )   # g2o stores only upper triangular of information matrix.
+    # def write_edge_se2_xy(self, pose_id, landmark_id, measurement, info_matrix):
+    #     mx, my = measurement
+    #     I = info_matrix
+    #     self.g2o_file.write(
+    #         f"EDGE_SE2_XY {pose_id} {landmark_id} {mx} {my} "
+    #         f"{I[0,0]} {I[0,1]} "
+    #         f"{I[1,1]}\n"
+    #     )   # g2o stores only upper triangular of information matrix.
         
     def write_groundtruth(self, vertex_id):
         if self.gtruth_pose is None:
